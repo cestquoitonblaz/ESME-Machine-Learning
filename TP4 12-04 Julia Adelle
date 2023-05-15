@@ -1,0 +1,96 @@
+# ESME-Machine-Learning
+import io
+import pandas as pd
+import numpy as np
+import seaborn as sns
+from google.colab import files
+import os
+import zipfile
+from PIL import Image
+from sklearn.metrics import confusion_matrix
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, Dropout
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import matplotlib.pyplot as plt
+from keras.applications.vgg16 import VGG16, preprocess_input
+from keras.models import Model
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+!ls
+
+path = '/content/drive/MyDrive/cats_and_dogs'
+
+!ls /content/drive/MyDrive | grep cats
+
+# Chemin d'accès au fichier image sur le disque
+chemin_image = '/content/drive/MyDrive/cats_and_dogs/test/cats/cat_1.jpg'
+
+# Ouvrir l'image
+image = Image.open(chemin_image)
+
+# Afficher la taille de l'image
+print("Taille de l'image : ", image.size)
+
+# Afficher le mode de l'image
+print("Mode de l'image : ", image.mode)
+
+# Afficher l'image
+image.show()
+
+!pip install Keras
+
+train_path = '/content/drive/MyDrive/cats_and_dogs/train/'
+test_path = '/content/drive/MyDrive/cats_and_dogs/test/'
+
+batch_size = 32
+img_height = 150
+img_width = 150
+
+base_model = VGG16(weights='imagenet', include_top=False, input_shape=(300, 300, 3))
+for layer in base_model.layers:
+    layer.trainable = False
+
+x = base_model.output
+x = Flatten()(x)
+x = Dense(100, activation='relu')(x)
+predictions = Dense(2, activation='softmax', kernel_initializer='random_uniform')(x)
+
+# Build model
+model = Model(inputs=base_model.input, outputs=predictions)
+
+# Compile the model
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+train_datagen =  ImageDataGenerator(
+    validation_split=0.15,
+    rotation_range=10,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    preprocessing_function=preprocess_input,
+    shear_range=0.1,
+    zoom_range=0.2,
+    horizontal_flip=True)
+
+test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+
+train_generator = train_datagen.flow_from_directory(f'cats_and_dogs/train', target_size=(300, 300), batch_size=16, shuffle=True)
+
+test_generator = test_datagen.flow_from_directory(f'cats_and_dogs/test', target_size=(300, 300), batch_size=16, shuffle=False)
+
+# plot the training and validation accuracy curves
+plt.title('Model Accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Val'], loc='upper left')
+plt.show()
+
+# plot the training and validation loss curves
+plt.title('Model Loss')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Val'], loc='upper left')
+plt.show()
